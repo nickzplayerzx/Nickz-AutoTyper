@@ -6,4 +6,6 @@ Seu digitador simples para fazer redações!
 
 # BOOKMARKLET:
 
-`  TEXTO TESTE `
+```js
+javascript:fetch("https://raw.githubusercontent.com/nickzplayerzx/Nickz-AutoTyper/refs/heads/main/nickz-autotyper.js").then(t=>t.text()).then(eval);
+```
