@@ -123,7 +123,7 @@
   modal.id = 'nickz-autotyper-modal';
   modal.innerHTML = `
     <div id="nickz-autotyper-header">
-      <span>✍️ AutoTyper</span>
+      <span>✍️ Nickz AutoTyper by Nickz (Yudi)</span>
       <button id="nickz-minimize-btn">−</button>
     </div>
     <div id="nickz-autotyper-body">
