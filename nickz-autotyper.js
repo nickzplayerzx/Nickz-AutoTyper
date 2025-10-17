@@ -3,67 +3,85 @@
 
   if (document.getElementById('nickz-autotyper-modal')) return;
 
+  // Estilo com suporte a arrastar e minimizar
   const style = document.createElement('style');
   style.textContent = `
     #nickz-autotyper-modal {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 20px;
+      right: 20px;
       z-index: 2147483647;
       background: #120b1f;
       border: 2px solid #7e57c2;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(126, 87, 194, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(126, 87, 194, 0.5);
       font-family: 'Segoe UI', system-ui, sans-serif;
-      width: 90%;
-      max-width: 500px;
-      padding: 24px;
+      width: 340px;
       color: #e0d6ff;
+      user-select: none;
     }
     #nickz-autotyper-header {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    #nickz-autotyper-header h3 {
-      margin: 0;
-      color: #b39ddb;
-      font-size: 20px;
-    }
-    #nickz-autotyper-textarea {
-      width: 100%;
-      height: 120px;
-      background: #1a142a;
-      color: #d9c7ff;
-      border: 1px solid #7e57c2;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 14px;
-      resize: vertical;
-      margin-bottom: 16px;
-      box-sizing: border-box;
-    }
-    #nickz-autotyper-btn {
-      width: 100%;
       padding: 12px;
       background: linear-gradient(90deg, #7e57c2, #5e35b1);
       color: white;
+      font-weight: bold;
+      font-size: 15px;
+      text-align: center;
+      cursor: move;
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #nickz-autotyper-header span {
+      flex: 1;
+    }
+    #nickz-minimize-btn {
+      background: none;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: opacity 0.3s;
+      margin-left: 8px;
+      font-size: 18px;
+    }
+    #nickz-autotyper-body {
+      padding: 16px;
+      display: block;
+    }
+    #nickz-autotyper-textarea {
+      width: 100%;
+      height: 100px;
+      background: #1a142a;
+      color: #d9c7ff;
+      border: 1px solid #7e57c2;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    #nickz-autotyper-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(90deg, #7e57c2, #5e35b1);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
     }
     #nickz-autotyper-btn:hover {
       opacity: 0.9;
     }
     #nickz-autotyper-countdown {
       text-align: center;
-      margin-top: 12px;
-      font-size: 18px;
+      margin-top: 10px;
+      font-size: 16px;
       color: #ffcc80;
       font-weight: bold;
+      min-height: 22px;
     }
     #nickz-credit {
       position: fixed;
@@ -71,41 +89,86 @@
       right: 12px;
       color: #b39ddb;
       font-size: 12px;
-      z-index: 2147483646;
       background: rgba(94, 53, 177, 0.2);
       padding: 4px 10px;
       border-radius: 6px;
       pointer-events: none;
+      z-index: 2147483646;
+    }
+    .nickz-minimized {
+      height: 40px;
+      overflow: hidden;
+    }
+    .nickz-minimized #nickz-autotyper-body {
+      display: none;
     }
     @media (max-width: 600px) {
       #nickz-autotyper-modal {
-        width: 95%;
-        padding: 20px;
-      }
-      #nickz-autotyper-textarea {
-        height: 140px;
+        width: 95vw;
+        max-width: 400px;
+        right: 2.5vw;
       }
     }
   `;
   document.head.appendChild(style);
 
+  // Créditos
   const credit = document.createElement('div');
   credit.id = 'nickz-credit';
   credit.textContent = 'Nickz (Yudi Matheus)';
   document.body.appendChild(credit);
 
+  // Modal
   const modal = document.createElement('div');
   modal.id = 'nickz-autotyper-modal';
   modal.innerHTML = `
     <div id="nickz-autotyper-header">
-      <h3>✍️ AutoTyper Universal</h3>
+      <span>✍️ AutoTyper</span>
+      <button id="nickz-minimize-btn">−</button>
     </div>
-    <textarea id="nickz-autotyper-textarea" placeholder="Cole ou digite seu texto aqui..."></textarea>
-    <button id="nickz-autotyper-btn">Iniciar Digitação</button>
-    <div id="nickz-autotyper-countdown"></div>
+    <div id="nickz-autotyper-body">
+      <textarea id="nickz-autotyper-textarea" placeholder="Cole seu texto aqui..."></textarea>
+      <button id="nickz-autotyper-btn">Iniciar Digitação</button>
+      <div id="nickz-autotyper-countdown"></div>
+    </div>
   `;
   document.body.appendChild(modal);
 
+  // === Funcionalidade: Arrastar ===
+  let isDragging = false;
+  let offsetX, offsetY;
+
+  const header = document.getElementById('nickz-autotyper-header');
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.id === 'nickz-minimize-btn') return;
+    isDragging = true;
+    offsetX = e.clientX - modal.getBoundingClientRect().left;
+    offsetY = e.clientY - modal.getBoundingClientRect().top;
+    modal.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const x = e.clientX - offsetX;
+    const y = e.clientY - offsetY;
+    modal.style.left = x + 'px';
+    modal.style.top = y + 'px';
+    modal.style.right = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  // === Funcionalidade: Minimizar ===
+  const minimizeBtn = document.getElementById('nickz-minimize-btn');
+  minimizeBtn.addEventListener('click', () => {
+    modal.classList.toggle('nickz-minimized');
+    minimizeBtn.textContent = modal.classList.contains('nickz-minimized') ? '+' : '−';
+  });
+
+  // === Função: Digitar texto realista ===
   async function digitarNoElemento(el, texto) {
     if (!el) return;
     el.focus();
@@ -152,6 +215,7 @@
     }
   }
 
+  // === Encontrar campo de texto ===
   function encontrarCampo() {
     const candidatos = [
       ...document.querySelectorAll('textarea'),
@@ -170,6 +234,7 @@
     ) || candidatos[0];
   }
 
+  // === Contagem regressiva ===
   function mostrarContagem(callback) {
     const countdownEl = document.getElementById('nickz-autotyper-countdown');
     let segundos = 5;
@@ -187,26 +252,28 @@
     }, 1000);
   }
 
+  // === Botão principal ===
   document.getElementById('nickz-autotyper-btn').addEventListener('click', () => {
     const campo = encontrarCampo();
     if (!campo) {
-      alert('⚠️ Nenhum campo de texto encontrado.\n\n➡️ Clique dentro do campo onde deseja digitar, depois abra este menu novamente.');
+      alert('⚠️ Clique dentro do campo de texto primeiro.');
       return;
     }
 
     const texto = document.getElementById('nickz-autotyper-textarea').value.trim();
     if (!texto) {
-      alert('⚠️ Digite ou cole um texto antes de iniciar.');
+      alert('⚠️ Digite um texto antes de iniciar.');
       return;
     }
 
-    modal.style.opacity = '0';
+    modal.style.opacity = '0.8';
     modal.style.pointerEvents = 'none';
-    setTimeout(() => modal.remove(), 300);
 
-    alert('✅ Pronto!\n\n➡️ **Clique dentro do campo de texto** (se ainda não tiver).\n\nA digitação começará em 5 segundos.');
+    alert('✅ Pronto!\n\n➡️ Clique no campo de texto (se ainda não tiver).\n\nA digitação começará em 5 segundos.');
 
     mostrarContagem(() => {
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
       digitarNoElemento(campo, texto);
     });
   });
