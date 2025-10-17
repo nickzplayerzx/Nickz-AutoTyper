@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "AutoTyper - Nickz",
+  "version": "1.0",
+  "description": "Digita automaticamente em qualquer campo. Créditos: Nickz.",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": ["activeTab"]
+}
