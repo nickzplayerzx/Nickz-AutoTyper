@@ -1,3 +1,4 @@
-# ☄️ Nickz AutoTyper by Nickz And Kovez Script Developers
+# ☄️ Nickz AutoTyper
 
 Seu digitador simples para fazer redações!
+**by Nickz And Kovez Script Developers**
