@@ -3,8 +3,13 @@
 
   if (document.getElementById('nickz-autotyper-modal')) return;
 
-  // Carregar rascunho salvo (se existir)
-  const savedDraft = localStorage.getItem('nickz_autotyper_draft') || '';
+  // Carregar rascunho com fallback seguro
+  let savedDraft = '';
+  try {
+    savedDraft = localStorage.getItem('nickz_autotyper_draft') || '';
+  } catch (e) {
+    console.warn('LocalStorage indisponível. Rascunho desativado.');
+  }
 
   const style = document.createElement('style');
   style.textContent = `
@@ -103,15 +108,8 @@
     .nickz-minimized #nickz-autotyper-body {
       display: none;
     }
-    @media (max-width: 600px) {
-      #nickz-autotyper-modal {
-        width: 95vw;
-        max-width: 400px;
-        right: 2.5vw;
-      }
-    }
 
-    /* Modal de confirmação */
+    /* Modal de sucesso */
     #nickz-success-modal {
       position: fixed;
       top: 0;
@@ -171,15 +169,22 @@
   `;
   document.body.appendChild(modal);
 
-  // Salvar rascunho a cada 1 segundo (opcional: pode ser ao digitar)
+  // Salvar rascunho com segurança
   const textarea = document.getElementById('nickz-autotyper-textarea');
-  setInterval(() => {
-    localStorage.setItem('nickz_autotyper_draft', textarea.value);
-  }, 1000);
+  const saveDraft = () => {
+    try {
+      localStorage.setItem('nickz_autotyper_draft', textarea.value);
+    } catch (e) {
+      // Ignorar se localStorage bloqueado
+    }
+  };
+  textarea.addEventListener('input', () => {
+    clearTimeout(textarea.saveTimer);
+    textarea.saveTimer = setTimeout(saveDraft, 800);
+  });
 
   // === Arrastar ===
-  let isDragging = false;
-  let offsetX, offsetY;
+  let isDragging = false, offsetX, offsetY;
   const header = document.getElementById('nickz-autotyper-header');
   header.addEventListener('mousedown', (e) => {
     if (e.target.id === 'nickz-minimize-btn') return;
@@ -190,14 +195,12 @@
     modal.style.transition = 'none';
     e.preventDefault();
   });
-
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     modal.style.left = (e.clientX - offsetX) + 'px';
     modal.style.top = (e.clientY - offsetY) + 'px';
     modal.style.right = 'auto';
   });
-
   document.addEventListener('mouseup', () => isDragging = false);
 
   // === Minimizar ===
@@ -207,25 +210,67 @@
     minimizeBtn.textContent = modal.classList.contains('nickz-minimized') ? '+' : '−';
   });
 
-  // === Digitação realista ===
-  async function digitarNoElemento(el, texto) {
+  // ✅ DIGITAÇÃO HUMANA REALISTA (caractere por caractere)
+  async function digitarRealista(el, texto) {
     if (!el) return;
     el.focus();
 
-    // Não limpamos mais automaticamente — deixamos para o usuário decidir
-    // Mas garantimos que o texto será inserido corretamente
-    if (el.isContentEditable) {
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      document.execCommand('insertText', false, texto);
-    } else if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-      el.value = texto;
+    // Garantir que o campo esteja vazio (opcional, mas seguro)
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.value = '';
       el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (el.isContentEditable) {
+      el.innerHTML = '';
+    }
+
+    for (let i = 0; i < texto.length; i++) {
+      const char = texto[i];
+      const charCode = char.charCodeAt(0);
+
+      // Simular tecla pressionada
+      const eventProps = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        key: char,
+        code: char.length === 1 ? `Key${char.toUpperCase()}` : '',
+        keyCode: charCode,
+        which: charCode,
+        charCode: charCode
+      };
+
+      // Disparar eventos na ordem correta
+      el.dispatchEvent(new KeyboardEvent('keydown', eventProps));
+      el.dispatchEvent(new KeyboardEvent('keypress', eventProps));
+
+      // Inserir caractere
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        const start = el.selectionStart || 0;
+        const end = el.selectionEnd || 0;
+        const val = el.value;
+        el.value = val.substring(0, start) + char + val.substring(end);
+        el.setSelectionRange(start + 1, start + 1);
+      } else if (el.isContentEditable) {
+        // Para contenteditable, inserimos caractere por caractere com range
+        const textNode = document.createTextNode(char);
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(textNode);
+          range.setStartAfter(textNode);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+
+      // Eventos pós-inserção
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+      el.dispatchEvent(new KeyboardEvent('keyup', eventProps));
+
+      // Pausa realista (40ms a 100ms por caractere)
+      await new Promise(r => setTimeout(r, Math.random() * 60 + 40));
     }
   }
 
@@ -234,13 +279,11 @@
     const candidatos = [
       ...document.querySelectorAll('textarea'),
       ...document.querySelectorAll('[contenteditable="true"]'),
-      ...document.querySelectorAll('[contenteditable]:not([contenteditable="false"])'),
-      ...document.querySelectorAll('input[type="text"]')
+      ...document.querySelectorAll('[contenteditable]:not([contenteditable="false"])')
     ].filter(el => {
       const s = getComputedStyle(el);
-      return s.display !== 'none' && s.visibility !== 'hidden' && (el.offsetWidth > 0 || el.offsetHeight > 0);
+      return s.display !== 'none' && s.visibility !== 'hidden' && (el.offsetWidth > 0);
     });
-
     return candidatos.find(el =>
       /reda|text|essay|escrita|resposta|composi|artigo/i.test(
         (el.placeholder || '') + (el.name || '') + (el.id || '') + (el.className || '')
@@ -253,7 +296,6 @@
     const countdownEl = document.getElementById('nickz-autotyper-countdown');
     let segundos = 5;
     countdownEl.textContent = `Iniciando em ${segundos}...`;
-
     const interval = setInterval(() => {
       segundos--;
       if (segundos > 0) {
@@ -278,7 +320,6 @@
       </div>
     `;
     document.body.appendChild(successModal);
-
     document.getElementById('nickz-success-btn').onclick = () => {
       document.body.removeChild(successModal);
     };
@@ -298,17 +339,16 @@
       return;
     }
 
-    // Desativar interação durante contagem
     modal.style.opacity = '0.7';
     modal.style.pointerEvents = 'none';
 
-    alert('✅ Pronto!\n\n➡️ Certifique-se de que o cursor está no campo de texto.\n\nA digitação começará em 5 segundos.');
+    alert('✅ Pronto!\n\n➡️ Clique no campo de texto (se ainda não tiver).\n\nA digitação começará em 5 segundos.');
 
     mostrarContagem(async () => {
-      await digitarNoElemento(campo, texto);
+      await digitarRealista(campo, texto);
       modal.style.opacity = '1';
       modal.style.pointerEvents = 'auto';
-      mostrarSucesso(); // ✅ Pop-up de sucesso
+      mostrarSucesso();
     });
   });
 })();
