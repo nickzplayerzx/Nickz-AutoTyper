@@ -3,7 +3,9 @@
 
   if (document.getElementById('nickz-autotyper-modal')) return;
 
-  // Estilo com suporte a arrastar e minimizar
+  // Carregar rascunho salvo (se existir)
+  const savedDraft = localStorage.getItem('nickz_autotyper_draft') || '';
+
   const style = document.createElement('style');
   style.textContent = `
     #nickz-autotyper-modal {
@@ -47,7 +49,6 @@
     }
     #nickz-autotyper-body {
       padding: 16px;
-      display: block;
     }
     #nickz-autotyper-textarea {
       width: 100%;
@@ -109,113 +110,126 @@
         right: 2.5vw;
       }
     }
+
+    /* Modal de confirmação */
+    #nickz-success-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2147483647;
+    }
+    #nickz-success-content {
+      background: #120b1f;
+      border: 2px solid #7e57c2;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      color: #e0d6ff;
+      max-width: 350px;
+      width: 90%;
+    }
+    #nickz-success-content h3 {
+      color: #b39ddb;
+      margin-top: 0;
+    }
+    #nickz-success-btn {
+      margin-top: 16px;
+      padding: 8px 20px;
+      background: #7e57c2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
   `;
   document.head.appendChild(style);
 
-  // Créditos
   const credit = document.createElement('div');
   credit.id = 'nickz-credit';
   credit.textContent = 'Nickz (Yudi Matheus)';
   document.body.appendChild(credit);
 
-  // Modal
   const modal = document.createElement('div');
   modal.id = 'nickz-autotyper-modal';
   modal.innerHTML = `
     <div id="nickz-autotyper-header">
-      <span>✍️ Nickz AutoTyper by Nickz (Yudi)</span>
+      <span>✍️ AutoTyper</span>
       <button id="nickz-minimize-btn">−</button>
     </div>
     <div id="nickz-autotyper-body">
-      <textarea id="nickz-autotyper-textarea" placeholder="Cole seu texto aqui..."></textarea>
+      <textarea id="nickz-autotyper-textarea" placeholder="Cole seu texto aqui...">${savedDraft}</textarea>
       <button id="nickz-autotyper-btn">Iniciar Digitação</button>
       <div id="nickz-autotyper-countdown"></div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  // === Funcionalidade: Arrastar ===
+  // Salvar rascunho a cada 1 segundo (opcional: pode ser ao digitar)
+  const textarea = document.getElementById('nickz-autotyper-textarea');
+  setInterval(() => {
+    localStorage.setItem('nickz_autotyper_draft', textarea.value);
+  }, 1000);
+
+  // === Arrastar ===
   let isDragging = false;
   let offsetX, offsetY;
-
   const header = document.getElementById('nickz-autotyper-header');
   header.addEventListener('mousedown', (e) => {
     if (e.target.id === 'nickz-minimize-btn') return;
     isDragging = true;
-    offsetX = e.clientX - modal.getBoundingClientRect().left;
-    offsetY = e.clientY - modal.getBoundingClientRect().top;
+    const rect = modal.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
     modal.style.transition = 'none';
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    const x = e.clientX - offsetX;
-    const y = e.clientY - offsetY;
-    modal.style.left = x + 'px';
-    modal.style.top = y + 'px';
+    modal.style.left = (e.clientX - offsetX) + 'px';
+    modal.style.top = (e.clientY - offsetY) + 'px';
     modal.style.right = 'auto';
   });
 
-  document.addEventListener('mouseup', () => {
-    isDragging = false;
-  });
+  document.addEventListener('mouseup', () => isDragging = false);
 
-  // === Funcionalidade: Minimizar ===
+  // === Minimizar ===
   const minimizeBtn = document.getElementById('nickz-minimize-btn');
   minimizeBtn.addEventListener('click', () => {
     modal.classList.toggle('nickz-minimized');
     minimizeBtn.textContent = modal.classList.contains('nickz-minimized') ? '+' : '−';
   });
 
-  // === Função: Digitar texto realista ===
+  // === Digitação realista ===
   async function digitarNoElemento(el, texto) {
     if (!el) return;
     el.focus();
 
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      el.value = '';
+    // Não limpamos mais automaticamente — deixamos para o usuário decidir
+    // Mas garantimos que o texto será inserido corretamente
+    if (el.isContentEditable) {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand('insertText', false, texto);
+    } else if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+      el.value = texto;
       el.dispatchEvent(new Event('input', { bubbles: true }));
-    } else if (el.isContentEditable) {
-      el.innerHTML = '';
-    }
-
-    for (let i = 0; i < texto.length; i++) {
-      const char = texto[i];
-      const charCode = char.charCodeAt(0);
-
-      const eventProps = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        key: char,
-        code: char.length === 1 ? `Key${char.toUpperCase()}` : '',
-        keyCode: charCode,
-        which: charCode,
-        charCode: charCode
-      };
-
-      el.dispatchEvent(new KeyboardEvent('keydown', eventProps));
-      el.dispatchEvent(new KeyboardEvent('keypress', eventProps));
-
-      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-        const start = el.selectionStart || 0;
-        const end = el.selectionEnd || 0;
-        const val = el.value;
-        el.value = val.substring(0, start) + char + val.substring(end);
-        el.setSelectionRange(start + 1, start + 1);
-      } else if (el.isContentEditable) {
-        document.execCommand('insertText', false, char);
-      }
-
-      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
-      el.dispatchEvent(new KeyboardEvent('keyup', eventProps));
-
-      await new Promise(r => setTimeout(r, Math.random() * 60 + 40));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
-  // === Encontrar campo de texto ===
+  // === Encontrar campo ===
   function encontrarCampo() {
     const candidatos = [
       ...document.querySelectorAll('textarea'),
@@ -228,7 +242,7 @@
     });
 
     return candidatos.find(el =>
-      /reda|text|essay|escrita|resposta|composi|artigo|answer|message|comment/i.test(
+      /reda|text|essay|escrita|resposta|composi|artigo/i.test(
         (el.placeholder || '') + (el.name || '') + (el.id || '') + (el.className || '')
       )
     ) || candidatos[0];
@@ -252,6 +266,24 @@
     }, 1000);
   }
 
+  // === Modal de sucesso ===
+  function mostrarSucesso() {
+    const successModal = document.createElement('div');
+    successModal.id = 'nickz-success-modal';
+    successModal.innerHTML = `
+      <div id="nickz-success-content">
+        <h3>✅ Sucesso!</h3>
+        <p>Texto digitado com sucesso.</p>
+        <button id="nickz-success-btn">OK</button>
+      </div>
+    `;
+    document.body.appendChild(successModal);
+
+    document.getElementById('nickz-success-btn').onclick = () => {
+      document.body.removeChild(successModal);
+    };
+  }
+
   // === Botão principal ===
   document.getElementById('nickz-autotyper-btn').addEventListener('click', () => {
     const campo = encontrarCampo();
@@ -260,21 +292,23 @@
       return;
     }
 
-    const texto = document.getElementById('nickz-autotyper-textarea').value.trim();
+    const texto = textarea.value.trim();
     if (!texto) {
       alert('⚠️ Digite um texto antes de iniciar.');
       return;
     }
 
-    modal.style.opacity = '0.8';
+    // Desativar interação durante contagem
+    modal.style.opacity = '0.7';
     modal.style.pointerEvents = 'none';
 
-    alert('✅ Pronto!\n\n➡️ Clique no campo de texto (se ainda não tiver).\n\nA digitação começará em 5 segundos.');
+    alert('✅ Pronto!\n\n➡️ Certifique-se de que o cursor está no campo de texto.\n\nA digitação começará em 5 segundos.');
 
-    mostrarContagem(() => {
+    mostrarContagem(async () => {
+      await digitarNoElemento(campo, texto);
       modal.style.opacity = '1';
       modal.style.pointerEvents = 'auto';
-      digitarNoElemento(campo, texto);
+      mostrarSucesso(); // ✅ Pop-up de sucesso
     });
   });
 })();
