@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AutoTyper - Nickz",
-  "version": "1.0",
-  "description": "Digita automaticamente em qualquer campo. Créditos: Nickz.",
+  "name": "AutoTyper - Nickz (by Yudi Matheus)",
+  "version": "1.3.2",
+  "description": "Um simples digitador automatico para você fazer suas redaçôes!     Créditos ao criador do script por Nickz (Yudi Matheus) e Kovez (Washinley Samuel)",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
