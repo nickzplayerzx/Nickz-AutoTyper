@@ -129,7 +129,7 @@
   modal.id = 'nickz-autotyper-modal';
   modal.innerHTML = `
     <div id="nickz-autotyper-header">
-      <span>Nickz AutoTyper by Yudi Matheus ✍️ </span>
+      <span>Nickz AutoTyper | by Yudi Matheus ✍️ </span>
       <button id="nickz-minimize-btn">−</button>
     </div>
     <div id="nickz-autotyper-body">
@@ -278,4 +278,5 @@
     mostrarSucesso(); // ✅ Texto permanece no campo!
   });
 })();
+
 
