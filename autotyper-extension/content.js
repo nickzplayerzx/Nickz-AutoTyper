@@ -129,11 +129,11 @@
   modal.id = 'nickz-autotyper-modal';
   modal.innerHTML = `
     <div id="nickz-autotyper-header">
-      <span>✍️ AutoTyper</span>
+      <span>Nickz AutoTyper by Yudi Matheus ✍️ </span>
       <button id="nickz-minimize-btn">−</button>
     </div>
     <div id="nickz-autotyper-body">
-      <textarea id="nickz-autotyper-textarea" placeholder="Cole seu texto aqui...">${savedDraft}</textarea>
+      <textarea id="nickz-autotyper-textarea" placeholder="Cole o texto que deseja digitar automaticamente aqui neste campo">${savedDraft}</textarea>
       <button id="nickz-autotyper-btn">Iniciar Digitação</button>
     </div>
   `;
@@ -253,7 +253,7 @@
   function mostrarSucesso() {
     const m = document.createElement('div');
     m.id = 'nickz-success-modal';
-    m.innerHTML = `<div id="nickz-success-content"><h3>✅ Sucesso!</h3><p>O texto foi digitado como se fosse você.</p><button id="nickz-success-btn">OK</button></div>`;
+    m.innerHTML = `<div id="nickz-success-content"><h3>✅ Sucesso!</h3><p>O texto foi digitado com sucesso!</p><button id="nickz-success-btn">OK</button></div>`;
     document.body.appendChild(m);
     m.querySelector('#nickz-success-btn').onclick = () => document.body.removeChild(m);
   }
@@ -278,3 +278,4 @@
     mostrarSucesso(); // ✅ Texto permanece no campo!
   });
 })();
+
