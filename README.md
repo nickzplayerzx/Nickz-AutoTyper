@@ -2,10 +2,7 @@
 
 Seu digitador simples para fazer redações!
 
-**by Nickz And Kovez Script Developers**
+```Feito pelos desenvolvedores Nickz (Yudi Matheus) e Kovez/zStuartBW (Washinley Samuel)
 
-# BOOKMARKLET:
 
-```js
-javascript:fetch("https://raw.githubusercontent.com/nickzplayerzx/Nickz-AutoTyper/refs/heads/main/nickz-autotyper.js").then(t=>t.text()).then(eval);
-```
+
