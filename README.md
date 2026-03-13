@@ -11,5 +11,5 @@ Principais Funções
 
 # Script executável como BookMarklet
 ```js
-bookmarklet
+javascript:(function(){var s=document.createElement('script');s.src='https://raw.githubusercontent.com/nickzplayerzx/Nickz-AutoTyper/refs/heads/main/nickz-autotyper.js?t='+Date.now();s.crossOrigin='anonymous';s.onload=function(){console.log('RedacaoBypass loaded (no-cache)')};document.head.appendChild(s)})();
 ```
