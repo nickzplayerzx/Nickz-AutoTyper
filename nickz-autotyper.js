@@ -37,7 +37,7 @@
         },
         scrapeAssignmentData: () => {
             const getTextByLabel = (lbl) => {
-               .from(document.querySelectorAll('p.MuiTypography-root'));
+               from(document.querySelectorAll('p.MuiTypography-root'));
                 const node = all.find(p => p.textContent.trim() === lbl);
                 if (node && node.nextElementSibling) return node.nextElementSibling.textContent.trim();
                 if (node && node.parentElement) {
